@@ -10,6 +10,7 @@ my $yt = WWW::YouTube::Download::Channel->new ();
 isa_ok ($yt, 'WWW::YouTube::Download::Channel');
 $yt->debug(1);
 $yt->apply_regex_filter('translate beat box');
+$yt->apply_regex_skip('skiiiipaaaa');
 $yt->leech_channel('google');
 $yt->download_all;
 

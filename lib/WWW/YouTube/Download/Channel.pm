@@ -6,7 +6,7 @@ use XML::XPath::XMLParser;
 use WWW::YouTube::Download;
 use Text::Unaccent;
 
-our $VERSION     = '0.01';
+our $VERSION     = '0.02';
 
 has agent => (
     is      => 'rw',
@@ -89,6 +89,12 @@ has filter_title_regex => (
     isa => 'Str',
 );
 
+has skip_title_regex => (
+    is => 'rw',
+    isa => 'Str',
+#    default => '',
+);
+
 has debug => (
     is  => 'rw',
     isa => 'Int',
@@ -101,34 +107,30 @@ sub parse_page {
     $self->page_video_found(0);
     my $nodeset = $xml->findnodes('//entry');
     foreach my $node_html ( $nodeset->get_nodelist ) {
-        if ( $node_html->string_value =~
-            m{^http://gdata.youtube.com/feeds/api/videos} )
-        {
-            $self->page_video_found( $self->page_video_found + 1 );
-            $self->total_user_videos( $self->total_user_videos + 1 );
-            my $xml_details =
-              XML::XPath->new(
-                xml => XML::XPath::XMLParser::as_string($node_html) );
-            my $video_id = my $video_url = $xml_details->findvalue('//id');
-            $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i;
-            my $video_title = $xml_details->findvalue('//title');
-            warn "Video_id: " . $video_id if ($self->debug == 1);
-            warn "Title: " . $video_title if ($self->debug == 1);
-            my $regex = $self->filter_title_regex
-              if !!$self->filter_title_regex;
-
-            if ( !$regex || $video_title =~ m/$regex/i ) {
-                $self->total_download_videos(
-                    $self->total_download_videos + 1 );
-                push @{ $self->video_list_ids },
-                  {
-                    id       => $video_id,
-                    title    => $video_title,
-                    url      => $video_url,
-                    filename => $self->title_to_filename($video_title),
-                  };
-            }
-            undef $xml_details;
+          if ( $node_html->string_value =~ m{^http://gdata.youtube.com/feeds/api/videos} ) {
+          $self->page_video_found( $self->page_video_found + 1 );
+          $self->total_user_videos( $self->total_user_videos + 1 );
+          my $xml_details = XML::XPath->new( xml => XML::XPath::XMLParser::as_string($node_html) );
+          my $video_id = my $video_url = $xml_details->findvalue( '//id' );
+          $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i ;
+          my $video_title = $xml_details->findvalue( '//title' );
+          my $regex = $self->filter_title_regex if !! $self->filter_title_regex;
+          if ( ! $regex || $video_title =~ m/$regex/ig ) {
+              my $regex_skip = $self->skip_title_regex if !! $self->skip_title_regex;
+              warn "skipping regex: " . $regex_skip;
+              if ( ! $regex_skip || $video_title !~ m/$regex_skip/i ) {
+          warn "Video_id: " . $video_id;
+          warn "Title: " . $video_title;
+                  $self->total_download_videos( $self->total_download_videos + 1 );
+                  push @{ $self->video_list_ids } , {
+                      id => $video_id ,
+                      title => $video_title,
+                      url => $video_url,
+                      filename => $self->title_to_filename( $video_title ),
+                  } 
+              }
+          }
+          undef $xml_details;
         }
     }
     undef($xml);
@@ -213,6 +215,11 @@ sub apply_regex_filter {
     $self->filter_title_regex($regex);
 }
 
+sub apply_regex_skip {
+    my ( $self, $regex ) = @_; 
+    $self->skip_title_regex( $regex );
+}
+
 =head1 NAME
 
     WWW::YouTube::Download::Channel - Downloads all/every/some of the videos from any youtube user channel
@@ -224,6 +231,7 @@ sub apply_regex_filter {
 
     $yt->target_directory('/youtuve/thiers48'); #OPTIONAL. default is current dir
     $yt->apply_regex_filter('24 horas|24H');    #OPTIONAL apply regex filters by title.. 
+    $yt->apply_regex_skip( 'skip|this|title' ); #OPTIONAL skip some titles
     $yt->leech_channel('thiers48');             #REQ
     $yt->download_all;                          #REQ find and download youtube videos
 
