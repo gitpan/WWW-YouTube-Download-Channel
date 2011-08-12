@@ -6,7 +6,7 @@ use XML::XPath::XMLParser;
 use WWW::YouTube::Download;
 use Text::Unaccent;
 
-our $VERSION     = '0.02';
+our $VERSION = '0.03';
 
 has agent => (
     is      => 'rw',
@@ -76,7 +76,7 @@ has start_index => (    #page index
 has max_results => (    #limit results per page retrieved
     is      => 'ro',
     isa     => 'Int',
-    default => 50, #youtube limit 
+    default => 50,      #youtube limit
 );
 
 has target_directory => (
@@ -90,14 +90,15 @@ has filter_title_regex => (
 );
 
 has skip_title_regex => (
-    is => 'rw',
+    is  => 'rw',
     isa => 'Str',
-#    default => '',
+
+    #    default => '',
 );
 
 has debug => (
-    is  => 'rw',
-    isa => 'Int',
+    is      => 'rw',
+    isa     => 'Int',
     default => 0,
 );
 
@@ -107,33 +108,66 @@ sub parse_page {
     $self->page_video_found(0);
     my $nodeset = $xml->findnodes('//entry');
     foreach my $node_html ( $nodeset->get_nodelist ) {
-          if ( $node_html->string_value =~ m{^http://gdata.youtube.com/feeds/api/videos} ) {
-          $self->page_video_found( $self->page_video_found + 1 );
-          $self->total_user_videos( $self->total_user_videos + 1 );
-          my $xml_details = XML::XPath->new( xml => XML::XPath::XMLParser::as_string($node_html) );
-          my $video_id = my $video_url = $xml_details->findvalue( '//id' );
-          $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i ;
-          my $video_title = $xml_details->findvalue( '//title' );
-          my $regex = $self->filter_title_regex if !! $self->filter_title_regex;
-          if ( ! $regex || $video_title =~ m/$regex/ig ) {
-              my $regex_skip = $self->skip_title_regex if !! $self->skip_title_regex;
-              warn "skipping regex: " . $regex_skip;
-              if ( ! $regex_skip || $video_title !~ m/$regex_skip/i ) {
-          warn "Video_id: " . $video_id;
-          warn "Title: " . $video_title;
-                  $self->total_download_videos( $self->total_download_videos + 1 );
-                  push @{ $self->video_list_ids } , {
-                      id => $video_id ,
-                      title => $video_title,
-                      url => $video_url,
-                      filename => $self->title_to_filename( $video_title ),
-                  } 
-              }
-          }
-          undef $xml_details;
+        if ( $node_html->string_value =~
+            m{^http://gdata.youtube.com/feeds/api/videos} )
+        {
+            $self->page_video_found( $self->page_video_found + 1 );
+            $self->total_user_videos( $self->total_user_videos + 1 );
+            my $xml_details =
+              XML::XPath->new(
+                xml => XML::XPath::XMLParser::as_string($node_html) );
+            my $video_id = my $video_url = $xml_details->findvalue('//id');
+            my $published_date =
+              $self->transform_youtube_date(
+                $xml_details->findvalue('//published') );
+            $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i;
+            my $video_title = $xml_details->findvalue('//title');
+            my $regex       = $self->filter_title_regex
+              if !!$self->filter_title_regex;
+
+            if ( !$regex || $video_title =~ m/$regex/ig ) {
+                my $regex_skip = $self->skip_title_regex
+                  if !!$self->skip_title_regex;
+                warn "skipping regex: " . $regex_skip;
+                if ( !$regex_skip || $video_title !~ m/$regex_skip/i ) {
+                    my $filename =
+                      $self->title_to_filename(
+                        $video_title . '-' . $published_date );
+                    warn "Video_id: " . $video_id;
+                    warn "Title: " . $video_title;
+                    warn "Filename: " . $filename;
+                    $self->total_download_videos(
+                        $self->total_download_videos + 1 );
+                    push @{ $self->video_list_ids },
+                      {
+                        id             => $video_id,
+                        title          => $video_title,
+                        published_date => $published_date,
+                        url            => $video_url,
+                        filename       => $filename,
+                      };
+                }
+            }
+            undef $xml_details;
         }
     }
     undef($xml);
+}
+
+sub transform_youtube_date {
+    my ( $self, $date ) = @_;
+    if ( $date =~ m/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/i ) {
+        my $year  = $1;
+        my $month = $2;
+        my $day   = $3;
+        my $hour  = $4;
+        my $min   = $5;
+        my $sec   = $6;
+        return "$year-$month-$day";
+    }
+    else {
+        return "";
+    }
 }
 
 sub title_to_filename {
@@ -141,8 +175,7 @@ sub title_to_filename {
     $title =~ s/\W/-/ig;
     $title =~ s/--{1,}/-/ig;
     $title =~ s/^-|-$//ig;
-    my $filename = unac_string( 'UTF8', $title );
-    return $filename;
+    return unac_string( 'UTF8', $title );
 }
 
 sub entry {
@@ -174,8 +207,7 @@ sub list_videos {
     my ($self) = @_;
     $self->agent->get( $self->url_next );
     $self->parse_page( $self->agent->content );
-    while ( $self->page_video_found > 0 )
-    {
+    while ( $self->page_video_found > 0 ) {
         $self->start_index( $self->start_index + $self->max_results );
         $self->define_next_url();
         $self->list_videos();
@@ -216,8 +248,8 @@ sub apply_regex_filter {
 }
 
 sub apply_regex_skip {
-    my ( $self, $regex ) = @_; 
-    $self->skip_title_regex( $regex );
+    my ( $self, $regex ) = @_;
+    $self->skip_title_regex($regex);
 }
 
 =head1 NAME

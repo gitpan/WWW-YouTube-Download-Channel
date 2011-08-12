@@ -15,12 +15,12 @@ $yt->leech_channel('google');
 $yt->download_all;
 
 sub is_file_downloaded {
-    return 1 if ( -e 'Google-Demo-Slam-Translate-Beat-Box' );
+    return 1 if ( -e 'Google-Demo-Slam-Translate-Beat-Box-2010-12-01' );
 } 
 is( 1, is_file_downloaded , 'video downloaded..' );
 
-if ( -e 'Google-Demo-Slam-Translate-Beat-Box' ) {
-    unlink 'Google-Demo-Slam-Translate-Beat-Box'; # clean up
+if ( -e 'Google-Demo-Slam-Translate-Beat-Box-2010-12-01' ) {
+    unlink 'Google-Demo-Slam-Translate-Beat-Box-2010-12-01'; # clean up
 } 
 
 done_testing();
