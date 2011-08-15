@@ -32,8 +32,10 @@
       },
       "runtime" : {
          "requires" : {
+            "IO::Socket::SSL" : 0,
             "LWP::Protocol::https" : 0,
             "Moose" : 0,
+            "Perl6::Form" : 0,
             "Test::Simple" : "0.44",
             "Text::Unaccent" : 0,
             "WWW::Mechanize" : 0,
@@ -44,5 +46,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.03"
+   "version" : "0.04"
 }

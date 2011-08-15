@@ -10,9 +10,11 @@ WriteMakefile(
     ABSTRACT     => 'Downloads all/every/some of the videos from any youtube user channel',
     PREREQ_PM    => {
                      'Test::Simple' => 0.44,
+                    'Perl6::Form' => 0,
                     'Moose' => 0,
                     'WWW::Mechanize' => 0,
                     'XML::XPath' => 0,
+                    'IO::Socket::SSL' => 0,
                     'XML::XPath::XMLParser' => 0,
                     'WWW::YouTube::Download' => 0,
                     'Text::Unaccent' => 0,

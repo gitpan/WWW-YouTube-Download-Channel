@@ -1,106 +1,186 @@
-package WWW::YouTube::Download::Channel;
-use Moose;
-use WWW::Mechanize;
-use XML::XPath;
-use XML::XPath::XMLParser;
-use WWW::YouTube::Download;
-use Text::Unaccent;
+  package WWW::YouTube::Download::Channel;
+  use Moose;
+  use WWW::Mechanize;
+  use XML::XPath;
+  use XML::XPath::XMLParser;
+  use WWW::YouTube::Download;
+  use Text::Unaccent;
+  use Perl6::Form;
 
-our $VERSION = '0.03';
+  our $VERSION = '0.04';
+  our $VER     = $VERSION;
 
-has agent => (
-    is      => 'rw',
-    isa     => 'WWW::Mechanize',
-    default => sub {
-        my $mech = WWW::Mechanize->new();
-        $mech->agent_alias('Windows IE 6');
-        return $mech;
-    },
-);
+  has agent => (
+      is      => 'rw',
+      isa     => 'WWW::Mechanize',
+      default => sub {
+          my $mech = WWW::Mechanize->new();
+          $mech->agent_alias('Windows IE 6');
+          return $mech;
+      },
+  );
 
-has xmlxpath => (
-    is  => 'rw',
-    isa => 'XML::XPath',
-);
+  has xmlxpath => (
+      is  => 'rw',
+      isa => 'XML::XPath',
+  );
 
-has video_list_ids => (
-    is      => 'rw',
-    isa     => 'ArrayRef',
-    default => sub {
-        my @arr;
-        return \@arr;
-    },
-);
+  has video_list_ids => (
+      is      => 'rw',
+      isa     => 'ArrayRef',
+      default => sub {
+          my @arr;
+          return \@arr;
+      },
+  );
 
-has total_user_videos => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
+  has total_user_videos => (
+      is      => 'rw',
+      isa     => 'Int',
+      default => 0,
+  );
 
-has total_download_videos => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
+  has total_download_videos => (
+      is      => 'rw',
+      isa     => 'Int',
+      default => 0,
+  );
 
-has entry_url => (
-    is  => 'rw',
-    isa => 'Str',
-);
+  has entry_url => (
+      is  => 'rw',
+      isa => 'Str',
+  );
 
-has channel => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '',
-);
+  has channel => (
+      is      => 'rw',
+      isa     => 'Str',
+      default => '',
+  );
 
-has url_next => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => '',
-);
+  has url_next => (
+      is      => 'rw',
+      isa     => 'Str',
+      default => '',
+  );
 
-has page_video_found => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
+  has page_video_found => (
+      is      => 'rw',
+      isa     => 'Int',
+      default => 0,
+  );
 
-has start_index => (    #page index
-    is      => 'rw',
-    isa     => 'Int',
-    default => 1,
-);
+  has start_index => (    #page index
+      is      => 'rw',
+      isa     => 'Int',
+      default => 1,
+  );
 
-has max_results => (    #limit results per page retrieved
-    is      => 'ro',
-    isa     => 'Int',
-    default => 50,      #youtube limit
-);
+  has max_results => (    #limit results per page retrieved
+      is      => 'ro',
+      isa     => 'Int',
+      default => 50,      #youtube limit
+  );
 
-has target_directory => (
-    is  => 'rw',
-    isa => 'Str',
-);
+  has target_directory => (
+      is  => 'rw',
+      isa => 'Str',
+  );
 
-has filter_title_regex => (
-    is  => 'rw',
-    isa => 'Str',
-);
+  has filter_title_regex => (
+      is  => 'rw',
+      isa => 'Str',
+  );
 
-has skip_title_regex => (
-    is  => 'rw',
-    isa => 'Str',
+  has skip_title_regex => (
+      is  => 'rw',
+      isa => 'Str',
 
-    #    default => '',
-);
+      #    default => '',
+  );
 
-has debug => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
+  has debug => (
+      is      => 'rw',
+      isa     => 'Int',
+      default => 0,
+  );
+
+  sub prepare_nfo {
+      my ( $self, $item ) = @_;
+
+      my $info = form
+  "===============================================================================",
+  "--[ WWW::YouTube::Download::Channel ]------------------------------------------",
+  "                                                                               ",
+  "  {||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||} ",
+        "[" . $item->{title} . "]",
+  "                                                                               ",
+  "  .............Title: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{title},
+  "  .........Video Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{video_url},
+  "  ............Author: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{author},
+  "  ........Author Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{author_url},
+  "  ....Date Published: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{published_date},
+  "  ......Date Updated: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+        $item->{updated_date},
+  "                                                                               ",
+"                                [ REVIEW ]                                     ",
+"                                                                               ",
+"  {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[} ",
+      $item->{content},
+"                                                                               ",
+"---------------------------------------------------[ version $VER by HERNAN ]--",
+"==============================================================================="
+      ,;
+    return $info;
+}
+
+sub prepare_item {
+    my ( $self, $html ) = @_;
+    my $xml_details = XML::XPath->new( xml => $html );
+    my $video_id = $xml_details->findvalue('//id');
+    $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i;
+
+    my $published_date =
+      $self->transform_youtube_date( $xml_details->findvalue('//published') );
+
+    my $updated_date =
+      $self->transform_youtube_date( $xml_details->findvalue('//updated') );
+
+    my $content    = $xml_details->findvalue('//content');
+    my $author     = $xml_details->findvalue('//author//name');
+    my $video_url  = "http://www.youtube.com/watch?v=$video_id";
+    my $author_url = "http://www.youtube.com/user/$author";
+
+    my $video_title = $xml_details->findvalue('//title');
+
+    my $filename =
+      $self->title_to_filename( $video_title . '-' . $published_date );
+
+    $filename =
+      ( defined $self->target_directory )
+      ? $self->target_directory . '/' . $filename
+      : $filename;
+    my $filename_nfo = $filename . '.nfo';
+    my $item         = {
+        id             => $video_id,
+        title          => $video_title,
+        published_date => $published_date,
+        updated_date   => $updated_date,
+        url            => $video_url,
+        filename       => $filename,
+        filename_nfo   => $filename_nfo,
+        video_url      => $video_url,
+        author_url     => $author_url,
+        author         => $author,
+        content        => $content,
+    };
+    return $item;
+    undef $xml_details;
+}
 
 sub parse_page {
     my ( $self, $html_content ) = @_;
@@ -113,42 +193,28 @@ sub parse_page {
         {
             $self->page_video_found( $self->page_video_found + 1 );
             $self->total_user_videos( $self->total_user_videos + 1 );
-            my $xml_details =
-              XML::XPath->new(
-                xml => XML::XPath::XMLParser::as_string($node_html) );
-            my $video_id = my $video_url = $xml_details->findvalue('//id');
-            my $published_date =
-              $self->transform_youtube_date(
-                $xml_details->findvalue('//published') );
-            $video_id =~ s{http://gdata.youtube.com/feeds/api/videos/}{}i;
-            my $video_title = $xml_details->findvalue('//title');
-            my $regex       = $self->filter_title_regex
-              if !!$self->filter_title_regex;
 
-            if ( !$regex || $video_title =~ m/$regex/ig ) {
+            my $item = $self->prepare_item(
+                XML::XPath::XMLParser::as_string($node_html) );
+
+            my $regex = $self->filter_title_regex
+              if defined $self->filter_title_regex;
+
+            if ( !$regex || $item->{title} =~ m/$regex/ig ) {
                 my $regex_skip = $self->skip_title_regex
-                  if !!$self->skip_title_regex;
+                  if defined $self->skip_title_regex;
                 warn "skipping regex: " . $regex_skip;
-                if ( !$regex_skip || $video_title !~ m/$regex_skip/i ) {
-                    my $filename =
-                      $self->title_to_filename(
-                        $video_title . '-' . $published_date );
-                    warn "Video_id: " . $video_id;
-                    warn "Title: " . $video_title;
-                    warn "Filename: " . $filename;
+                if ( !$regex_skip || $item->{title} !~ m/$regex_skip/i ) {
+                    warn "Video_id: " . $item->{id}       if $self->debug;
+                    warn "Title: " . $item->{title}       if $self->debug;
+                    warn "Filename: " . $item->{filename} if $self->debug;
                     $self->total_download_videos(
                         $self->total_download_videos + 1 );
-                    push @{ $self->video_list_ids },
-                      {
-                        id             => $video_id,
-                        title          => $video_title,
-                        published_date => $published_date,
-                        url            => $video_url,
-                        filename       => $filename,
-                      };
+
+                    $item->{nfo} = $self->prepare_nfo($item);
+                    push( @{ $self->video_list_ids }, $item );
                 }
             }
-            undef $xml_details;
         }
     }
     undef($xml);
@@ -166,7 +232,7 @@ sub transform_youtube_date {
         return "$year-$month-$day";
     }
     else {
-        return "";
+        return "0000-00-00";
     }
 }
 
@@ -225,21 +291,26 @@ sub download_all {
       . $self->channel;
     foreach my $item ( @{ $self->video_list_ids } ) {
         $counter++;
-        my $filename =
-          ( defined $self->target_directory )
-          ? $self->target_directory . '/' . $item->{filename}
-          : $item->{filename};
-
         warn $counter . '/'
           . $self->total_download_videos
           . ' - Downloading: '
           . $item->{title}
           . ' into '
-          . $filename;
+          . $item->{filename};
 
-        $client->download( $item->{id}, { ( file_name => $filename ), } )
-          if ( !-e $filename );
+        if ( !-e $item->{filename} ) {
+            $client->download( $item->{id},
+                { ( file_name => $item->{filename} ), } );
+            $self->save_nfo( $item->{nfo}, $item->{filename_nfo} );
+        }
     }
+}
+
+sub save_nfo {
+    my ( $self, $nfo, $filename ) = @_;
+    open FH, ">$filename";
+    print FH $nfo;
+    close FH;
 }
 
 sub apply_regex_filter {
