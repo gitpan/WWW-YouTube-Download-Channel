@@ -1,13 +1,13 @@
   package WWW::YouTube::Download::Channel;
+  use utf8;
   use Moose;
   use WWW::Mechanize;
   use XML::XPath;
   use XML::XPath::XMLParser;
   use WWW::YouTube::Download;
-  use Text::Unaccent;
   use Perl6::Form;
 
-  our $VERSION = '0.04';
+  our $VERSION = '0.05';
   our $VER     = $VERSION;
 
   has agent => (
@@ -241,7 +241,8 @@ sub title_to_filename {
     $title =~ s/\W/-/ig;
     $title =~ s/--{1,}/-/ig;
     $title =~ s/^-|-$//ig;
-    return unac_string( 'UTF8', $title );
+    $title =~ tr/àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ/aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY/ ;
+    return $title;
 }
 
 sub entry {
