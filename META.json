@@ -37,7 +37,6 @@
             "Moose" : 0,
             "Perl6::Form" : 0,
             "Test::Simple" : "0.44",
-            "Text::Unaccent" : 0,
             "WWW::Mechanize" : 0,
             "WWW::YouTube::Download" : 0,
             "XML::XPath" : 0,
@@ -46,5 +45,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.05"
+   "version" : "0.06"
 }
