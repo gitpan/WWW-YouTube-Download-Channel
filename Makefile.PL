@@ -18,5 +18,6 @@ WriteMakefile(
                     'XML::XPath::XMLParser' => 0,
                     'WWW::YouTube::Download' => 0,
                     'LWP::Protocol::https' => 0,
+                    'Mozilla::CA' => 0,
                     },
 );

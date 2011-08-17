@@ -7,7 +7,7 @@
   use WWW::YouTube::Download;
   use Perl6::Form;
 
-  our $VERSION = '0.06';
+  our $VERSION = '0.07';
   our $VER     = $VERSION;
 
   has agent => (

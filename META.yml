@@ -21,10 +21,11 @@ requires:
   IO::Socket::SSL: 0
   LWP::Protocol::https: 0
   Moose: 0
+  Mozilla::CA: 0
   Perl6::Form: 0
   Test::Simple: 0.44
   WWW::Mechanize: 0
   WWW::YouTube::Download: 0
   XML::XPath: 0
   XML::XPath::XMLParser: 0
-version: 0.06
+version: 0.07
