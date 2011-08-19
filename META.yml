@@ -18,6 +18,7 @@ no_index:
     - t
     - inc
 requires:
+  DateTime: 0
   IO::Socket::SSL: 0
   LWP::Protocol::https: 0
   Moose: 0
@@ -28,4 +29,4 @@ requires:
   WWW::YouTube::Download: 0
   XML::XPath: 0
   XML::XPath::XMLParser: 0
-version: 0.07
+version: 0.08

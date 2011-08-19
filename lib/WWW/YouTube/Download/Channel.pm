@@ -6,8 +6,9 @@
   use XML::XPath::XMLParser;
   use WWW::YouTube::Download;
   use Perl6::Form;
+  use DateTime;
 
-  our $VERSION = '0.07';
+  our $VERSION = '0.08';
   our $VER     = $VERSION;
 
   has agent => (
@@ -98,6 +99,11 @@
       #    default => '',
   );
 
+  has date_filter_newer => (
+      is => 'rw',
+      isa => 'DateTime',
+  );
+
   has debug => (
       is      => 'rw',
       isa     => 'Int',
@@ -138,6 +144,12 @@
     return $info;
 }
 
+sub newer_than {
+    my ( $self, $date ) = @_; 
+    return if ref $date ne 'HASH' and ! $date->{ day } and ! $date->{ month } and ! $date->{ year };
+    $self->date_filter_newer( DateTime->new( $date ) );
+}
+
 sub prepare_item {
     my ( $self, $html ) = @_;
     my $xml_details = XML::XPath->new( xml => $html );
@@ -169,6 +181,7 @@ sub prepare_item {
         id             => $video_id,
         title          => $video_title,
         published_date => $published_date,
+        published_datetime => $self->string_to_datetime( $published_date ),
         updated_date   => $updated_date,
         url            => $video_url,
         filename       => $filename,
@@ -205,6 +218,10 @@ sub parse_page {
                   if defined $self->skip_title_regex;
                 warn "skipping regex: " . $regex_skip;
                 if ( !$regex_skip || $item->{title} !~ m/$regex_skip/i ) {
+                  if ( !$self->date_filter_newer #skips filter by date
+                      || DateTime->compare( $item->{ published_datetime } , $self->date_filter_newer ) ==1 #date1  > date2
+                      || DateTime->compare( $item->{ published_datetime } , $self->date_filter_newer ) ==0 #date1 == date2
+                      ) {
                     warn "Video_id: " . $item->{id}       if $self->debug;
                     warn "Title: " . $item->{title}       if $self->debug;
                     warn "Filename: " . $item->{filename} if $self->debug;
@@ -213,11 +230,23 @@ sub parse_page {
 
                     $item->{nfo} = $self->prepare_nfo($item);
                     push( @{ $self->video_list_ids }, $item );
+                  }
                 }
             }
         }
     }
     undef($xml);
+}
+
+sub string_to_datetime {
+    my ( $self, $date_string ) = @_; 
+    my @date_parts = split( '-', $date_string );
+    my $date = DateTime->new( {
+        day => $date_parts[2],
+        month => $date_parts[1],
+        year => $date_parts[0],
+    } );
+    return $date;
 }
 
 sub transform_youtube_date {
@@ -336,6 +365,8 @@ sub apply_regex_skip {
     $yt->target_directory('/youtuve/thiers48'); #OPTIONAL. default is current dir
     $yt->apply_regex_filter('24 horas|24H');    #OPTIONAL apply regex filters by title.. 
     $yt->apply_regex_skip( 'skip|this|title' ); #OPTIONAL skip some titles
+    $yt->newer_than( {                          #OPTIONAL filter videos by dates
+      day => 1, month => 12, year => 2000 } );  
     $yt->leech_channel('thiers48');             #REQ
     $yt->download_all;                          #REQ find and download youtube videos
 
