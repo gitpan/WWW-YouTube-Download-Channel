@@ -1,138 +1,145 @@
-  package WWW::YouTube::Download::Channel;
-  use utf8;
-  use Moose;
-  use WWW::Mechanize;
-  use XML::XPath;
-  use XML::XPath::XMLParser;
-  use WWW::YouTube::Download;
-  use Perl6::Form;
-  use DateTime;
+package WWW::YouTube::Download::Channel;
+use utf8;
+use Moose;
+use WWW::Mechanize;
+use XML::XPath;
+use XML::XPath::XMLParser;
+use WWW::YouTube::Download;
+use Perl6::Form;
+use DateTime;
+use Try::Tiny;
 
-  our $VERSION = '0.08';
-  our $VER     = $VERSION;
+our $VERSION = '0.09';
+our $VER     = $VERSION;
 
-  has agent => (
-      is      => 'rw',
-      isa     => 'WWW::Mechanize',
-      default => sub {
-          my $mech = WWW::Mechanize->new();
-          $mech->agent_alias('Windows IE 6');
-          return $mech;
-      },
-  );
+has agent => (
+    is      => 'rw',
+    isa     => 'WWW::Mechanize',
+    default => sub {
+        my $mech = WWW::Mechanize->new();
+        $mech->agent_alias('Windows IE 6');
+        return $mech;
+    },
+);
 
-  has xmlxpath => (
-      is  => 'rw',
-      isa => 'XML::XPath',
-  );
+has xmlxpath => (
+    is  => 'rw',
+    isa => 'XML::XPath',
+);
 
-  has video_list_ids => (
-      is      => 'rw',
-      isa     => 'ArrayRef',
-      default => sub {
-          my @arr;
-          return \@arr;
-      },
-  );
+has video_list_ids => (
+    is      => 'rw',
+    isa     => 'ArrayRef',
+    default => sub {
+        my @arr;
+        return \@arr;
+    },
+);
 
-  has total_user_videos => (
-      is      => 'rw',
-      isa     => 'Int',
-      default => 0,
-  );
+has total_user_videos => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
 
-  has total_download_videos => (
-      is      => 'rw',
-      isa     => 'Int',
-      default => 0,
-  );
+has total_download_videos => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
 
-  has entry_url => (
-      is  => 'rw',
-      isa => 'Str',
-  );
+has entry_url => (
+    is  => 'rw',
+    isa => 'Str',
+);
 
-  has channel => (
-      is      => 'rw',
-      isa     => 'Str',
-      default => '',
-  );
+has channel => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => '',
+);
 
-  has url_next => (
-      is      => 'rw',
-      isa     => 'Str',
-      default => '',
-  );
+has url_next => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => '',
+);
 
-  has page_video_found => (
-      is      => 'rw',
-      isa     => 'Int',
-      default => 0,
-  );
+has page_video_found => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
 
-  has start_index => (    #page index
-      is      => 'rw',
-      isa     => 'Int',
-      default => 1,
-  );
+has start_index => (    #page index
+    is      => 'rw',
+    isa     => 'Int',
+    default => 1,
+);
 
-  has max_results => (    #limit results per page retrieved
-      is      => 'ro',
-      isa     => 'Int',
-      default => 50,      #youtube limit
-  );
+has max_results => (    #limit results per page retrieved
+    is      => 'ro',
+    isa     => 'Int',
+    default => 50,      #youtube limit
+);
 
-  has target_directory => (
-      is  => 'rw',
-      isa => 'Str',
-  );
+has target_directory => (
+    is  => 'rw',
+    isa => 'Str',
+);
 
-  has filter_title_regex => (
-      is  => 'rw',
-      isa => 'Str',
-  );
+has filter_title_regex => (
+    is  => 'rw',
+    isa => 'Str',
+);
 
-  has skip_title_regex => (
-      is  => 'rw',
-      isa => 'Str',
+has skip_title_regex => (
+    is  => 'rw',
+    isa => 'Str',
 
-      #    default => '',
-  );
+    #    default => '',
+);
 
-  has date_filter_newer => (
-      is => 'rw',
-      isa => 'DateTime',
-  );
+has date_filter_newer => (
+    is  => 'rw',
+    isa => 'DateTime',
+);
 
-  has debug => (
-      is      => 'rw',
-      isa     => 'Int',
-      default => 0,
-  );
+has debug => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
 
-  sub prepare_nfo {
-      my ( $self, $item ) = @_;
+has errors_download => (
+    is      => 'rw',
+    isa     => 'ArrayRef',
+    default => sub { [] },
+);
 
-      my $info = form
-  "===============================================================================",
-  "--[ WWW::YouTube::Download::Channel ]------------------------------------------",
-  "                                                                               ",
-  "  {||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||} ",
-        "[" . $item->{title} . "]",
-  "                                                                               ",
-  "  .............Title: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{title},
-  "  .........Video Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{video_url},
-  "  ............Author: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{author},
-  "  ........Author Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{author_url},
-  "  ....Date Published: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{published_date},
-  "  ......Date Updated: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
-        $item->{updated_date},
-  "                                                                               ",
+sub prepare_nfo {
+    my ( $self, $item ) = @_;
+
+    my $info = form
+"===============================================================================",
+"--[ WWW::YouTube::Download::Channel ]------------------------------------------",
+"                                                                               ",
+"  {||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||} ",
+      "[" . $item->{title} . "]",
+"                                                                               ",
+"  .............Title: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{title},
+"  .........Video Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{video_url},
+"  ............Author: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{author},
+"  ........Author Url: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{author_url},
+"  ....Date Published: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{published_date},
+"  ......Date Updated: {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<} ",
+      $item->{updated_date},
+"                                                                               ",
 "                                [ REVIEW ]                                     ",
 "                                                                               ",
 "  {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[} ",
@@ -145,9 +152,13 @@
 }
 
 sub newer_than {
-    my ( $self, $date ) = @_; 
-    return if ref $date ne 'HASH' and ! $date->{ day } and ! $date->{ month } and ! $date->{ year };
-    $self->date_filter_newer( DateTime->new( $date ) );
+    my ( $self, $date ) = @_;
+    return
+      if ref $date ne 'HASH'
+          and !$date->{day}
+          and !$date->{month}
+          and !$date->{year};
+    $self->date_filter_newer( DateTime->new($date) );
 }
 
 sub prepare_item {
@@ -178,21 +189,21 @@ sub prepare_item {
       : $filename;
     my $filename_nfo = $filename . '.nfo';
     my $item         = {
-        id             => $video_id,
-        title          => $video_title,
-        published_date => $published_date,
-        published_datetime => $self->string_to_datetime( $published_date ),
-        updated_date   => $updated_date,
-        url            => $video_url,
-        filename       => $filename,
-        filename_nfo   => $filename_nfo,
-        video_url      => $video_url,
-        author_url     => $author_url,
-        author         => $author,
-        content        => $content,
+        id                 => $video_id,
+        title              => $video_title,
+        published_date     => $published_date,
+        published_datetime => $self->string_to_datetime($published_date),
+        updated_date       => $updated_date,
+        url                => $video_url,
+        filename           => $filename,
+        filename_nfo       => $filename_nfo,
+        video_url          => $video_url,
+        author_url         => $author_url,
+        author             => $author,
+        content            => $content,
     };
-    return $item;
     undef $xml_details;
+    return $item;
 }
 
 sub parse_page {
@@ -216,21 +227,30 @@ sub parse_page {
             if ( !$regex || $item->{title} =~ m/$regex/ig ) {
                 my $regex_skip = $self->skip_title_regex
                   if defined $self->skip_title_regex;
-                warn "skipping regex: " . $regex_skip;
-                if ( !$regex_skip || $item->{title} !~ m/$regex_skip/i ) {
-                  if ( !$self->date_filter_newer #skips filter by date
-                      || DateTime->compare( $item->{ published_datetime } , $self->date_filter_newer ) ==1 #date1  > date2
-                      || DateTime->compare( $item->{ published_datetime } , $self->date_filter_newer ) ==0 #date1 == date2
-                      ) {
-                    warn "Video_id: " . $item->{id}       if $self->debug;
-                    warn "Title: " . $item->{title}       if $self->debug;
-                    warn "Filename: " . $item->{filename} if $self->debug;
-                    $self->total_download_videos(
-                        $self->total_download_videos + 1 );
 
-                    $item->{nfo} = $self->prepare_nfo($item);
-                    push( @{ $self->video_list_ids }, $item );
-                  }
+                #               warn "skipping regex: " . $regex_skip ;
+                if ( !$regex_skip || $item->{title} !~ m/$regex_skip/i ) {
+                    if (
+                        !$self->date_filter_newer    #skips filter by date
+                        || DateTime->compare(
+                            $item->{published_datetime},
+                            $self->date_filter_newer
+                        ) == 1                       #date1  > date2
+                        || DateTime->compare(
+                            $item->{published_datetime},
+                            $self->date_filter_newer
+                        ) == 0                       #date1 == date2
+                      )
+                    {
+                        warn "Video_id: " . $item->{id}       if $self->debug;
+                        warn "Title: " . $item->{title}       if $self->debug;
+                        warn "Filename: " . $item->{filename} if $self->debug;
+                        $self->total_download_videos(
+                            $self->total_download_videos + 1 );
+
+                        $item->{nfo} = $self->prepare_nfo($item);
+                        push( @{ $self->video_list_ids }, $item );
+                    }
                 }
             }
         }
@@ -239,13 +259,15 @@ sub parse_page {
 }
 
 sub string_to_datetime {
-    my ( $self, $date_string ) = @_; 
+    my ( $self, $date_string ) = @_;
     my @date_parts = split( '-', $date_string );
-    my $date = DateTime->new( {
-        day => $date_parts[2],
-        month => $date_parts[1],
-        year => $date_parts[0],
-    } );
+    my $date = DateTime->new(
+        {
+            day   => $date_parts[2],
+            month => $date_parts[1],
+            year  => $date_parts[0],
+        }
+    );
     return $date;
 }
 
@@ -270,7 +292,8 @@ sub title_to_filename {
     $title =~ s/\W/-/ig;
     $title =~ s/--{1,}/-/ig;
     $title =~ s/^-|-$//ig;
-    $title =~ tr/àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ/aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY/ ;
+    $title =~
+tr/àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ/aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY/;
     return $title;
 }
 
@@ -328,12 +351,43 @@ sub download_all {
           . ' into '
           . $item->{filename};
 
-        if ( !-e $item->{filename} ) {
-            $client->download( $item->{id},
-                { ( file_name => $item->{filename} ), } );
-            $self->save_nfo( $item->{nfo}, $item->{filename_nfo} );
+        try {
+            if ( !-e $item->{filename} ) {
+                $client->download( $item->{id},
+                    { ( file_name => $item->{filename} ), } );
+                $self->save_nfo( $item->{nfo}, $item->{filename_nfo} );
+            }
         }
+        catch {
+            warn "caught error: $_";    # not $@
+            push(
+                @{ $self->errors_download },
+                {
+                    item  => $item,
+                    error => $_,
+                }
+            );
+        };
     }
+}
+
+after 'download_all' => sub {
+    my ( $self, $c ) = @_;
+    $self->show_download_errors;
+};
+
+sub show_download_errors {
+    my ( $self, $c ) = @_;
+    my $i = 0;
+    foreach my $err ( @{ $self->errors_download } ) {
+        $i++;
+        warn "Error $i "
+          . $err->{error}
+          . ',  for video: '
+          . $err->{item}->{title} . ' ( '
+          . $err->{item}->{filename} . ' )';
+    }
+    $self->errors_download( [] );
 }
 
 sub save_nfo {
@@ -369,6 +423,7 @@ sub apply_regex_skip {
       day => 1, month => 12, year => 2000 } );  
     $yt->leech_channel('thiers48');             #REQ
     $yt->download_all;                          #REQ find and download youtube videos
+    $yt->show_download_errors;                  #display list of errors if any
 
     warn "total user vids: " . $yt->total_user_videos;
     warn "total downloads: " . $yt->total_download_videos;
